@@ -2,7 +2,6 @@ pub mod cryptopals;
 
 #[cfg(test)]
 mod tests {
-
     #[test]
     fn challenge1() {
         use cryptopals::hex_to_b64;
@@ -18,5 +17,12 @@ mod tests {
         let b = "686974207468652062756c6c277320657965";
         let xored = "746865206b696420646f6e277420706c6179";
         assert_eq!(xored, fixed_xor(a, b));
+    }
+
+    #[test]
+    fn challenge3() {
+        use cryptopals::decode_byte_xor_cipher;
+        let a = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
+        assert_eq!("Cooking MC's like a pound of bacon", decode_byte_xor_cipher(a));
     }
 }

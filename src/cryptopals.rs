@@ -128,3 +128,37 @@ pub fn hex_to_char(c: u8) -> char {
         (c - 10u8 + 'a' as u8) as char
     }
 }
+
+pub fn decode_byte_xor_cipher(hex: &str) -> String {
+    use std::str;
+    let common_letters = ['e', 't', 'a', 'o', 'i', 'n', 's', 'h', 'r'];
+    let bytes = hex_to_bytes(hex);
+    let mut cur_score: usize;
+    let mut max_score = 0;
+    let mut best_match: Vec<u8> = Vec::new();
+    for key in 0u8..255u8 {
+        cur_score = 0;
+        let xored = xor_with_byte(&bytes, key);
+        for c in &xored {
+            for letter in common_letters.iter() {
+                if *letter == *c as char {
+                    cur_score += 1;
+                    break;
+                }
+            }
+        }
+        if max_score < cur_score {
+            max_score = cur_score;
+            best_match = xored;
+        }
+    }
+    str::from_utf8(&best_match).unwrap().to_string()
+}
+
+pub fn xor_with_byte(bytes: &Vec<u8>, key: u8) -> Vec<u8> {
+    let mut xored_bytes: Vec<u8> = Vec::new();
+    for byte in bytes {
+        xored_bytes.push(byte ^ key);
+    }
+    xored_bytes
+}
