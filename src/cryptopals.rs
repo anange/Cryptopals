@@ -129,7 +129,7 @@ pub fn hex_to_char(c: u8) -> char {
     }
 }
 
-pub fn decode_byte_xor_cipher(hex: &str) -> String {
+pub fn decode_byte_xor_cipher(hex: &str) -> (String, usize) {
     use std::str;
     let common_letters = ['e', 't', 'a', 'o', 'i', 'n', 's', 'h', 'r'];
     let bytes = hex_to_bytes(hex);
@@ -152,7 +152,11 @@ pub fn decode_byte_xor_cipher(hex: &str) -> String {
             best_match = xored;
         }
     }
-    str::from_utf8(&best_match).unwrap().to_string()
+    let decoded = str::from_utf8(&best_match);
+    if decoded.is_err() {
+        return (String::new(), 0)
+    }
+    (str::from_utf8(&best_match).unwrap().to_string(), max_score)
 }
 
 pub fn xor_with_byte(bytes: &Vec<u8>, key: u8) -> Vec<u8> {

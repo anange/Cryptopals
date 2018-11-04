@@ -23,6 +23,28 @@ mod tests {
     fn challenge3() {
         use cryptopals::decode_byte_xor_cipher;
         let a = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
-        assert_eq!("Cooking MC's like a pound of bacon", decode_byte_xor_cipher(a));
+        assert_eq!("Cooking MC's like a pound of bacon", decode_byte_xor_cipher(a).0);
+    }
+
+    #[test]
+    fn challenge4() {
+        use std::fs::File;
+        use std::io::Read;
+        use cryptopals::decode_byte_xor_cipher;
+        let mut file = File::open("data/4.txt").unwrap();
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).expect("Can't read file");
+
+        let ciphers: Vec<&str> = contents.lines().collect();
+        let mut max_score = 0;
+        let mut correct = String::new();
+        for line in &ciphers {
+            let (decoded, score) = decode_byte_xor_cipher(line);
+            if score > max_score {
+                max_score = score;
+                correct = decoded;
+            }
+        }
+        assert_eq!("Now that the party is jumping\n", correct);
     }
 }
