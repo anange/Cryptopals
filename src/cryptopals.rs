@@ -166,3 +166,15 @@ pub fn xor_with_byte(bytes: &Vec<u8>, key: u8) -> Vec<u8> {
     }
     xored_bytes
 }
+
+pub fn encrypt_repeating_xor(text: &str, key: &str) -> String {
+    let text_bytes = String::from(text).into_bytes();
+    let key_bytes = String::from(key).into_bytes();
+    let mut encrypted_bytes: Vec<u8> = Vec::new();
+    let mut key_index = 0;
+    for byte in text_bytes {
+        encrypted_bytes.push(byte ^ key_bytes[key_index]);
+        key_index = (key_index + 1) % 3;
+    }
+    bytes_to_hex(encrypted_bytes)
+}
