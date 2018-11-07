@@ -4,4 +4,4 @@ version = "0.1.0"
 authors = ["anange <a.angelakis@outlook.com>"]
 
 [dependencies]
-openssl = { version = "0.10", feature = ["vendored"] }
+openssl = "0.10"

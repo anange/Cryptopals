@@ -338,14 +338,11 @@ pub fn is_ecb(bytes: &[u8]) -> bool {
     false
 }
 
-pub fn pkcs7_pad(bytes: &[u8], desired_length: usize) -> Vec<u8> {
+pub fn pkcs7_pad(bytes: &mut Vec<u8>, desired_length: usize) {
     let pad_length = desired_length - (bytes.len() % desired_length);
     if pad_length > 255 {
         panic!("PKCS#7 padding is well-defined until 255 bytes");
     }
-    let mut padded_bytes = bytes.to_vec();
-    for i in 0..pad_length {
-        padded_bytes.push(pad_length as u8);
-    }
-    padded_bytes
+    let mut padded_bytes = vec![pad_length as u8; pad_length];
+    bytes.append(&mut padded_bytes);
 }

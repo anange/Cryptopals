@@ -133,4 +133,14 @@ mod tests {
         }
         assert_eq!(ecb_line, 132);
     }
+
+    #[test]
+    fn challenge9() {
+        use cryptopals::pkcs7_pad;
+        let n = 20;
+        let mut to_pad = "YELLOW SUBMARINE".as_bytes().to_vec();
+        let after_pad = "YELLOW SUBMARINE\x04\x04\x04\x04".as_bytes();
+        pkcs7_pad(&mut to_pad, n);
+        assert_eq!(to_pad, after_pad);
+    }
 }
