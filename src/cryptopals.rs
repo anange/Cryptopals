@@ -321,3 +321,19 @@ pub fn decrypt_aes_ecb(bytes: &[u8], key: &[u8]) -> String {
     let decrypted = decrypt(cipher, key, Some(iv), bytes).unwrap();
     str::from_utf8(&decrypted).unwrap().to_string()
 }
+
+pub fn is_ecb(bytes: &[u8]) -> bool {
+    let key_types: [usize; 3] = [16, 24, 32];
+    for key_length in key_types.iter() {
+        let mut blocks_set = Vec::new();
+        let blocks = bytes.len() / key_length;
+        for i in 0..blocks {
+            let current: Vec<u8> = bytes[i*key_length..(i+1)*key_length].to_vec();
+            if blocks_set.contains(&current) {
+                return true
+            }
+            blocks_set.push(current);
+        }
+    }
+    false
+}

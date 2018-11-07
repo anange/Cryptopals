@@ -115,4 +115,22 @@ mod tests {
         let key = "YELLOW SUBMARINE".as_bytes();
         assert_eq!(decrypt_aes_ecb(&encrypted, &key), decrypted);
     }
+
+    #[test]
+    fn challenge8() {
+        use files::read_from_file;
+        let contents = read_from_file("data/8.txt");
+
+        use cryptopals::hex_to_bytes;
+        use cryptopals::is_ecb;
+        let mut ecb_line = 0;
+        for (index, line) in contents.lines().enumerate() {
+            let bytes = hex_to_bytes(line);
+            if is_ecb(&bytes) {
+                ecb_line = index;
+                break
+            }
+        }
+        assert_eq!(ecb_line, 132);
+    }
 }
