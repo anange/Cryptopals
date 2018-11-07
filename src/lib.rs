@@ -1,4 +1,5 @@
 pub mod cryptopals;
+extern crate openssl;
 
 #[cfg(test)]
 mod tests {
@@ -67,16 +68,16 @@ mod tests {
 
     #[test]
     fn test_base64_decode() {
-        use cryptopals::b64_to_string;
+        use cryptopals::b64_to_bytes;
         let enc1 = "YW55IGNhcm5hbCBwbGVhcw==";
         let dec1 = "any carnal pleas";
-        assert_eq!(b64_to_string(enc1), dec1);
+        assert_eq!(b64_to_bytes(enc1), dec1.as_bytes());
         let enc2 = "YW55IGNhcm5hbCBwbGVhc3U=";
         let dec2 = "any carnal pleasu";
-        assert_eq!(b64_to_string(enc2), dec2);
+        assert_eq!(b64_to_bytes(enc2), dec2.as_bytes());
         let enc3 = "YW55IGNhcm5hbCBwbGVhc3Vy";
         let dec3 = "any carnal pleasur";
-        assert_eq!(b64_to_string(enc3), dec3);
+        assert_eq!(b64_to_bytes(enc3), dec3.as_bytes());
     }
 
     #[test]
@@ -87,9 +88,9 @@ mod tests {
         let mut contents = String::new();
         file.read_to_string(&mut contents).expect("Can't read file");
 
-        use cryptopals::b64_to_string;
+        use cryptopals::b64_to_bytes;
         use cryptopals::decrypt_vigenere;
-        let encrypted = b64_to_string(&contents);
+        let encrypted = b64_to_bytes(&contents);
         let (_, key) = decrypt_vigenere(&encrypted);
         assert_eq!("KEY", key);
     }
@@ -102,10 +103,29 @@ mod tests {
         let mut contents = String::new();
         file.read_to_string(&mut contents).expect("Can't read file");
 
-        use cryptopals::b64_to_string;
+        use cryptopals::b64_to_bytes;
         use cryptopals::decrypt_vigenere;
-        let encrypted = b64_to_string(&contents);
+        let encrypted = b64_to_bytes(&contents);
         let (_, key) = decrypt_vigenere(&encrypted);
         assert_eq!("Terminator X: Bring the noise", key);
+    }
+
+    #[test]
+    fn challenge7() {
+        use std::fs::File;
+        use std::io::Read;
+        let mut file = File::open("data/7.txt").unwrap();
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).expect("Can't read file");
+
+        let mut file = File::open("data/7-decrypted.txt").unwrap();
+        let mut decrypted = String::new();
+        file.read_to_string(&mut decrypted).expect("Can't read file");
+
+        use cryptopals::b64_to_bytes;
+        use cryptopals::decrypt_aes_ecb;
+        let encrypted = b64_to_bytes(&contents);
+        let key = "YELLOW SUBMARINE".as_bytes();
+        assert_eq!(decrypt_aes_ecb(&encrypted, &key), decrypted);
     }
 }

@@ -6,11 +6,9 @@ const BASE64: [char; 64] = [
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/'
 ];
 
-pub fn decrypt_vigenere(text: &str) -> (String, String) {
+pub fn decrypt_vigenere(bytes: &Vec<u8>) -> (String, String) {
     use std::str;
-    let bytes = String::from(text).into_bytes();
     let keysizes = get_possible_keysizes(&bytes);
-    //println!("{:?}", keysizes);
     let mut key: String = String::new();
     let mut decrypted: String = String::new();
     for i in 0..5 {
@@ -45,7 +43,6 @@ pub fn decrypt_vigenere(text: &str) -> (String, String) {
             key = str::from_utf8(&key_bytes).unwrap().to_string();
             break
         }
-        //println!("Possible key = {}\n\n\n{}\n\n", str::from_utf8(&key).unwrap().to_string(), decoded.unwrap().to_string());
     }
     (decrypted, key)
 }
@@ -78,8 +75,7 @@ pub fn hex_to_b64(hex: &str) -> String {
     b64_conv.convert()
 }
 
-pub fn b64_to_string(b64_enc: &str) -> String {
-    use std::str;
+pub fn b64_to_bytes(b64_enc: &str) -> Vec<u8> {
     let mut bytes: Vec<u8> = Vec::new();
     let mut cur_byte: u8 = 0u8;
     let mut base64_index = 0;
@@ -107,7 +103,8 @@ pub fn b64_to_string(b64_enc: &str) -> String {
         }
         base64_index += 1;
     }
-    str::from_utf8(&bytes).unwrap().to_string()
+    bytes
+    //str::from_utf8(&bytes).unwrap().to_string()
 }
 
 struct ToB64Converter {
@@ -313,4 +310,14 @@ pub fn is_valid(text: &str) -> bool {
     }
     let ascii_percentage = (ascii_chars as f64) / (text.len() as f64);
     ascii_percentage > 0.99
+}
+
+pub fn decrypt_aes_ecb(bytes: &[u8], key: &[u8]) -> String {
+    use std::str;
+    use openssl::symm::{decrypt, Cipher};
+
+    let cipher = Cipher::aes_128_ecb();
+    let iv = b"\x00\x01\x02\x03\x04\x05\x06\x07\x00\x01\x02\x03\x04\x05\x06\x07";
+    let decrypted = decrypt(cipher, key, Some(iv), bytes).unwrap();
+    str::from_utf8(&decrypted).unwrap().to_string()
 }
