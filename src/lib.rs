@@ -90,7 +90,8 @@ mod tests {
         use cryptopals::b64_to_string;
         use cryptopals::decrypt_vigenere;
         let encrypted = b64_to_string(&contents);
-        assert_eq!("lalala", decrypt_vigenere(&encrypted));
+        let (_, key) = decrypt_vigenere(&encrypted);
+        assert_eq!("KEY", key);
     }
 
     #[test]
@@ -104,6 +105,7 @@ mod tests {
         use cryptopals::b64_to_string;
         use cryptopals::decrypt_vigenere;
         let encrypted = b64_to_string(&contents);
-        assert_eq!("lalala", decrypt_vigenere(&encrypted));
+        let (_, key) = decrypt_vigenere(&encrypted);
+        assert_eq!("Terminator X: Bring the noise", key);
     }
 }

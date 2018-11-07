@@ -6,57 +6,66 @@ const BASE64: [char; 64] = [
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/'
 ];
 
-pub fn decrypt_vigenere(text: &str) -> String {
-    let bytes = String::from(text).into_bytes();
-    let keysize = get_possible_keysize(&bytes);
-    //println!("keysize={}", keysize);
-    let mut slices = Vec::new();
-    for c in bytes.chunks(keysize) {
-        slices.push(c);
-    }
-    let mut same_byte_slices = Vec::new();
-    for ind in 0..keysize {
-        let mut cur_same_byte_slice = Vec::new();
-        for s in &slices {
-            if s.len() <= ind {
-                break
-            }
-            cur_same_byte_slice.push(s[ind]);
-        }
-        same_byte_slices.push(cur_same_byte_slice);
-    }
-    let mut key: Vec<u8> = Vec::new();
-    for s in &same_byte_slices {
-        let (_, _, key_byte) = decode_byte_xor_cipher(&bytes_to_hex(s.clone()));
-        key.push(key_byte);
-    }
-    let bytes = hex_to_bytes(encrypt_repeating_xor(&bytes, &key).as_str());
+pub fn decrypt_vigenere(text: &str) -> (String, String) {
     use std::str;
-    let decoded = str::from_utf8(&bytes);
-    if decoded.is_err() {
-        return String::new()
+    let bytes = String::from(text).into_bytes();
+    let keysizes = get_possible_keysizes(&bytes);
+    //println!("{:?}", keysizes);
+    let mut key: String = String::new();
+    let mut decrypted: String = String::new();
+    for i in 0..5 {
+        let keysize = keysizes[i].1;
+        let mut slices = Vec::new();
+        for c in bytes.chunks(keysize) {
+            slices.push(c);
+        }
+        let mut same_byte_slices = Vec::new();
+        for ind in 0..keysize {
+            let mut cur_same_byte_slice = Vec::new();
+            for s in &slices {
+                if s.len() <= ind {
+                    break
+                }
+                cur_same_byte_slice.push(s[ind]);
+            }
+            same_byte_slices.push(cur_same_byte_slice);
+        }
+        let mut key_bytes = Vec::new();
+        for s in &same_byte_slices {
+            let (_, _, key_byte) = decode_byte_xor_cipher(&bytes_to_hex(s.clone()));
+            key_bytes.push(key_byte);
+        }
+        let bytes = hex_to_bytes(encrypt_repeating_xor(&bytes, &key_bytes).as_str());
+        let mut decoded = str::from_utf8(&bytes);
+        if decoded.is_err() {
+            return (String::new(), String::new())
+        }
+        if is_valid(decoded.unwrap()) {
+            decrypted = decoded.unwrap().to_string();
+            key = str::from_utf8(&key_bytes).unwrap().to_string();
+            break
+        }
+        //println!("Possible key = {}\n\n\n{}\n\n", str::from_utf8(&key).unwrap().to_string(), decoded.unwrap().to_string());
     }
-    decoded.unwrap().to_string()
-
+    (decrypted, key)
 }
 
-pub fn get_possible_keysize(bytes: &Vec<u8>) -> usize {
-    let mut min_dist: f64 = 8.0;
-    let mut best_keysize = 2;
-    let blocks = 3;
+pub fn get_possible_keysizes(bytes: &Vec<u8>) -> Vec<(f64, usize)> {
+    use std::cmp;
+    let mut keysizes: Vec<(f64, usize)> = Vec::new();
     for keysize in 2..41 {
+        let blocks = cmp::min(3, bytes.len() / (2*keysize));
         let mut cur_dist = 0;
         for i in 0..blocks {
             let first: Vec<u8> = bytes[2*i*keysize..(2*i+1) * keysize].to_vec();
             let second: Vec<u8> = bytes[(2*i+1)*keysize..(2*i+2) * keysize].to_vec();
             cur_dist += hamming_distance(&first, &second);
         }
-        if ((cur_dist as f64) / (blocks * keysize) as f64) < min_dist {
-            min_dist = (cur_dist as f64) / (blocks  * keysize) as f64;
-            best_keysize = keysize;
-        }
+        let cur_dist = (cur_dist as f64) / (blocks * keysize) as f64;
+        keysizes.push((cur_dist, keysize));
     }
-    best_keysize
+    keysizes.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    keysizes
 }
 
 
@@ -216,12 +225,17 @@ pub fn hex_to_char(c: u8) -> char {
     }
 }
 
-pub fn decode_byte_xor_cipher(hex: &str) -> (String, usize, u8) {
+pub fn decode_byte_xor_cipher(hex: &str) -> (String, i64, u8) {
     use std::str;
-    //let common_letters = ['e'];
-    let common_letters = ['e', 't', 'a', 'o', 'i', 'n', 's', 'h', 'r'];
+    let common_letters = [('e', 13), ('t', 9), ('a', 8), ('o', 8), ('i', 7),
+                          ('n', 7), ('s', 6), ('h', 6), ('r', 6), ('d', 4),
+                          ('l', 4), ('c', 3), ('u', 3), ('m', 2), ('w', 2),
+                          ('f', 2), ('g', 2), ('y', 2), ('p', 2), ('b', 1),
+                          ('v', 1), ('k', 1), ('&', -10), ('%', -10),
+                          ('~', -20), ('(', -5), (')', -5), ('$', -20),
+                          ('<', -20), ('>', -20), ('*', -20)];
     let bytes = hex_to_bytes(hex);
-    let mut cur_score: usize;
+    let mut cur_score: i64;
     let mut max_score = 0;
     let mut decrypt_key: u8 = 0u8;
     let mut best_match: Vec<u8> = Vec::new();
@@ -230,16 +244,8 @@ pub fn decode_byte_xor_cipher(hex: &str) -> (String, usize, u8) {
         let xored = xor_with_byte(&bytes, key);
         for c in &xored {
             for letter in common_letters.iter() {
-                if *letter == *c as char {
-                    if *letter == 'e' {
-                        cur_score += 4;
-                    } else if *letter == 't' {
-                        cur_score += 3;
-                    } else if *letter == 'r' || *letter == 'h' || *letter == 's' {
-                        cur_score += 1;
-                    } else {
-                        cur_score += 2;
-                    }
+                if letter.0 == *c as char {
+                    cur_score += letter.1;
                     break;
                 }
             }
@@ -296,4 +302,15 @@ pub fn byte_hamming_distance(byte1: u8, byte2: u8) -> usize {
         xored >>= 1;
     }
     dist
+}
+
+pub fn is_valid(text: &str) -> bool {
+    let mut ascii_chars = 0;
+    for c in text.chars() {
+        if c.is_ascii() && (!c.is_ascii_control() || c == '\n') {
+            ascii_chars += 1;
+        }
+    }
+    let ascii_percentage = (ascii_chars as f64) / (text.len() as f64);
+    ascii_percentage > 0.99
 }
