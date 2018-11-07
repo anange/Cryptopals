@@ -1,5 +1,7 @@
-pub mod cryptopals;
 extern crate openssl;
+
+pub mod cryptopals;
+pub mod files;
 
 #[cfg(test)]
 mod tests {
@@ -29,13 +31,10 @@ mod tests {
 
     #[test]
     fn challenge4() {
-        use std::fs::File;
-        use std::io::Read;
-        use cryptopals::decode_byte_xor_cipher;
-        let mut file = File::open("data/4.txt").unwrap();
-        let mut contents = String::new();
-        file.read_to_string(&mut contents).expect("Can't read file");
+        use files::read_from_file;
+        let contents = read_from_file("data/4.txt");
 
+        use cryptopals::decode_byte_xor_cipher;
         let ciphers: Vec<&str> = contents.lines().collect();
         let mut max_score = 0;
         let mut correct = String::new();
@@ -82,11 +81,8 @@ mod tests {
 
     #[test]
     fn challenge6_test() {
-        use std::fs::File;
-        use std::io::Read;
-        let mut file = File::open("data/6-test.txt").unwrap();
-        let mut contents = String::new();
-        file.read_to_string(&mut contents).expect("Can't read file");
+        use files::read_from_file;
+        let contents = read_from_file("data/6-test.txt");
 
         use cryptopals::b64_to_bytes;
         use cryptopals::decrypt_vigenere;
@@ -97,11 +93,8 @@ mod tests {
 
     #[test]
     fn challenge6() {
-        use std::fs::File;
-        use std::io::Read;
-        let mut file = File::open("data/6.txt").unwrap();
-        let mut contents = String::new();
-        file.read_to_string(&mut contents).expect("Can't read file");
+        use files::read_from_file;
+        let contents = read_from_file("data/6.txt");
 
         use cryptopals::b64_to_bytes;
         use cryptopals::decrypt_vigenere;
@@ -112,15 +105,9 @@ mod tests {
 
     #[test]
     fn challenge7() {
-        use std::fs::File;
-        use std::io::Read;
-        let mut file = File::open("data/7.txt").unwrap();
-        let mut contents = String::new();
-        file.read_to_string(&mut contents).expect("Can't read file");
-
-        let mut file = File::open("data/7-decrypted.txt").unwrap();
-        let mut decrypted = String::new();
-        file.read_to_string(&mut decrypted).expect("Can't read file");
+        use files::read_from_file;
+        let contents = read_from_file("data/7.txt");
+        let decrypted = read_from_file("data/7-decrypted.txt");
 
         use cryptopals::b64_to_bytes;
         use cryptopals::decrypt_aes_ecb;
