@@ -317,9 +317,16 @@ pub fn decrypt_aes_ecb(bytes: &[u8], key: &[u8]) -> String {
     use openssl::symm::{decrypt, Cipher};
 
     let cipher = Cipher::aes_128_ecb();
-    let iv = b"\x00\x01\x02\x03\x04\x05\x06\x07\x00\x01\x02\x03\x04\x05\x06\x07";
-    let decrypted = decrypt(cipher, key, Some(iv), bytes).unwrap();
+    let decrypted = decrypt(cipher, key, None, bytes).unwrap();
     str::from_utf8(&decrypted).unwrap().to_string()
+}
+
+pub fn encrypt_aes_ecb(bytes: &[u8], key: &[u8]) -> Vec<u8> {
+    use std::str;
+    use openssl::symm::{encrypt, Cipher};
+
+    let cipher = Cipher::aes_128_ecb();
+    encrypt(cipher, key, None, bytes).unwrap()
 }
 
 pub fn is_ecb(bytes: &[u8]) -> bool {

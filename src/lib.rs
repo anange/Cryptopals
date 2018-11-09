@@ -117,6 +117,17 @@ mod tests {
     }
 
     #[test]
+    fn test_encrypt_decrypt_aes_ecb() {
+        use cryptopals::decrypt_aes_ecb;
+        use cryptopals::encrypt_aes_ecb;
+        let text = "YELLOW SUBMARINE".as_bytes();
+        let key = "KEYKEYKEYKEYKEYK".as_bytes();
+        let encrypted = encrypt_aes_ecb(&text, &key);
+        let decrypted = decrypt_aes_ecb(&encrypted, &key);
+        assert_eq!(decrypted, "YELLOW SUBMARINE");
+    }
+
+    #[test]
     fn challenge8() {
         use files::read_from_file;
         let contents = read_from_file("data/8.txt");
