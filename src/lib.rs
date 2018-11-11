@@ -51,9 +51,11 @@ mod tests {
     #[test]
     fn challenge5() {
         use cryptopals::encrypt_repeating_xor;
+        use cryptopals::hex_to_bytes;
         let a = String::from("Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal");
         let key = String::from("ICE");
-        let encrypted = "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f";
+        let encrypted_hex = "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f";
+        let encrypted = hex_to_bytes(encrypted_hex);
         assert_eq!(encrypted, encrypt_repeating_xor(&a.into_bytes(), &key.into_bytes()));
     }
 
@@ -113,7 +115,7 @@ mod tests {
         use cryptopals::decrypt_aes_ecb;
         let encrypted = b64_to_bytes(&contents);
         let key = "YELLOW SUBMARINE".as_bytes();
-        assert_eq!(decrypt_aes_ecb(&encrypted, &key), decrypted);
+        assert_eq!(decrypt_aes_ecb(&encrypted, &key), decrypted.into_bytes());
     }
 
     #[test]
@@ -124,7 +126,7 @@ mod tests {
         let key = "KEYKEYKEYKEYKEYK".as_bytes();
         let encrypted = encrypt_aes_ecb(&text, &key);
         let decrypted = decrypt_aes_ecb(&encrypted, &key);
-        assert_eq!(decrypted, "YELLOW SUBMARINE");
+        assert_eq!(decrypted, "YELLOW SUBMARINE".as_bytes());
     }
 
     #[test]
@@ -153,5 +155,19 @@ mod tests {
         let after_pad = "YELLOW SUBMARINE\x04\x04\x04\x04".as_bytes();
         pkcs7_pad(&mut to_pad, n);
         assert_eq!(to_pad, after_pad);
+    }
+
+    #[test]
+    fn challenge10() {
+        use files::read_from_file;
+        let contents = read_from_file("data/10.txt");
+
+        use cryptopals::{b64_to_bytes, decrypt_aes_cbc,
+                         bytes_to_string, is_valid};
+        let encrypted = b64_to_bytes(&contents);
+        let key = "YELLOW SUBMARINE".as_bytes().to_vec();
+        let iv = vec![0u8; 16];
+        let decrypted = decrypt_aes_cbc(&encrypted, &key, &iv);
+        assert!(is_valid(bytes_to_string(&decrypted).as_str()));
     }
 }

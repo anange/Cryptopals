@@ -6,6 +6,11 @@ const BASE64: [char; 64] = [
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/'
 ];
 
+pub fn bytes_to_string(bytes: &[u8]) -> String {
+    use std::str;
+    str::from_utf8(bytes).unwrap().to_string()
+}
+
 pub fn decrypt_vigenere(bytes: &Vec<u8>) -> (String, String) {
     use std::str;
     let keysizes = get_possible_keysizes(&bytes);
@@ -33,7 +38,7 @@ pub fn decrypt_vigenere(bytes: &Vec<u8>) -> (String, String) {
             let (_, _, key_byte) = decode_byte_xor_cipher(&bytes_to_hex(s.clone()));
             key_bytes.push(key_byte);
         }
-        let bytes = hex_to_bytes(encrypt_repeating_xor(&bytes, &key_bytes).as_str());
+        let bytes = encrypt_repeating_xor(&bytes, &key_bytes);
         let mut decoded = str::from_utf8(&bytes);
         if decoded.is_err() {
             return (String::new(), String::new())
@@ -104,7 +109,6 @@ pub fn b64_to_bytes(b64_enc: &str) -> Vec<u8> {
         base64_index += 1;
     }
     bytes
-    //str::from_utf8(&bytes).unwrap().to_string()
 }
 
 struct ToB64Converter {
@@ -268,14 +272,14 @@ pub fn xor_with_byte(bytes: &Vec<u8>, key: u8) -> Vec<u8> {
     xored_bytes
 }
 
-pub fn encrypt_repeating_xor(text_bytes: &[u8], key_bytes: &[u8]) -> String {
+pub fn encrypt_repeating_xor(text_bytes: &[u8], key_bytes: &[u8]) -> Vec<u8> {
     let mut encrypted_bytes: Vec<u8> = Vec::new();
     let mut key_index = 0;
     for byte in text_bytes {
         encrypted_bytes.push(byte ^ key_bytes[key_index]);
         key_index = (key_index + 1) % key_bytes.len();
     }
-    bytes_to_hex(encrypted_bytes)
+    encrypted_bytes
 }
 
 pub fn hamming_distance(text1_bytes: &[u8], text2_bytes: &[u8]) -> usize {
@@ -312,21 +316,64 @@ pub fn is_valid(text: &str) -> bool {
     ascii_percentage > 0.99
 }
 
-pub fn decrypt_aes_ecb(bytes: &[u8], key: &[u8]) -> String {
-    use std::str;
-    use openssl::symm::{decrypt, Cipher};
+pub fn decrypt_aes_ecb(bytes: &[u8], key: &[u8]) -> Vec<u8> {
+    let mut decrypted: Vec<u8> = Vec::new();
+    for block in 0..(bytes.len() / 16) {
+        let current_cipher = &bytes[block*16..((block+1) * 16)];
+        let current_plain = decrypt_aes_ecb_block(current_cipher, key);
+        decrypted.extend(current_plain);
+    }
+    decrypted
+}
 
-    let cipher = Cipher::aes_128_ecb();
-    let decrypted = decrypt(cipher, key, None, bytes).unwrap();
-    str::from_utf8(&decrypted).unwrap().to_string()
+pub fn decrypt_aes_ecb_block(bytes: &[u8], key: &[u8]) -> Vec<u8> {
+    use openssl::symm::{Cipher, Mode, Crypter};
+    let block_size = Cipher::aes_128_ecb().block_size();
+    if bytes.len() != block_size || key.len() != block_size {
+        panic!("Can only decrypt blocks");
+    }
+
+    let mut decrypter = Crypter::new(
+    Cipher::aes_128_ecb(),
+    Mode::Decrypt,
+    key,
+    None).unwrap();
+
+    decrypter.pad(false);
+    let mut plaintext = vec![0u8; 2 * block_size];
+    decrypter.update(bytes, &mut plaintext)
+        .expect("Error in decryption");
+    plaintext
 }
 
 pub fn encrypt_aes_ecb(bytes: &[u8], key: &[u8]) -> Vec<u8> {
-    use std::str;
-    use openssl::symm::{encrypt, Cipher};
+    let mut encrypted: Vec<u8> = Vec::new();
+    for block in 0..(bytes.len() / 16) {
+        let current_plain = &bytes[block*16..((block+1) * 16)];
+        let current_cipher = encrypt_aes_ecb_block(current_plain, key);
+        encrypted.extend(current_cipher);
+    }
+    encrypted
+}
 
-    let cipher = Cipher::aes_128_ecb();
-    encrypt(cipher, key, None, bytes).unwrap()
+pub fn encrypt_aes_ecb_block(bytes: &[u8], key: &[u8]) -> Vec<u8> {
+    use openssl::symm::{Cipher, Mode, Crypter};
+    let block_size = Cipher::aes_128_ecb().block_size();
+    if bytes.len() != block_size || key.len() != block_size {
+        panic!("Can only encrypt blocks");
+    }
+
+    let mut encrypter = Crypter::new(
+    Cipher::aes_128_ecb(),
+    Mode::Encrypt,
+    key,
+    None).unwrap();
+
+    encrypter.pad(false);
+    let mut encrypted = vec![0u8; 2 * block_size];
+    encrypter.update(bytes, &mut encrypted)
+        .expect("Error in encryption");
+    encrypted
 }
 
 pub fn is_ecb(bytes: &[u8]) -> bool {
@@ -345,11 +392,28 @@ pub fn is_ecb(bytes: &[u8]) -> bool {
     false
 }
 
-pub fn pkcs7_pad(bytes: &mut Vec<u8>, desired_length: usize) {
-    let pad_length = desired_length - (bytes.len() % desired_length);
+pub fn pkcs7_pad(bytes: &mut Vec<u8>, desired_length_mult: usize) {
+    let pad_length = desired_length_mult - (bytes.len() % desired_length_mult);
     if pad_length > 255 {
         panic!("PKCS#7 padding is well-defined until 255 bytes");
     }
     let mut padded_bytes = vec![pad_length as u8; pad_length];
     bytes.append(&mut padded_bytes);
+}
+
+pub fn decrypt_aes_cbc(enc: &Vec<u8>, key: &Vec<u8>, iv: &Vec<u8>) -> Vec<u8> {
+    let mut cipher = enc.clone();
+    pkcs7_pad(&mut cipher, 16);
+    let mut decrypted: Vec<u8> = Vec::new();
+    for block in 0..(enc.len() / 16) {
+        let current = &cipher[block*16..((block+1) * 16)];
+        let cur_decrypted = decrypt_aes_ecb_block(current, key);
+        let cur_iv = if block == 0 {
+            iv
+        } else {
+            &cipher[(block-1)*16..block*16]
+        };
+        decrypted.extend(encrypt_repeating_xor(cur_iv, &cur_decrypted));
+    }
+    decrypted
 }
