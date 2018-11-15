@@ -158,6 +158,14 @@ mod tests {
     }
 
     #[test]
+    fn test_remove_pkcs7_pad() {
+        use cryptopals::remove_pkcs7_pad;
+        let mut padded = vec!(3u8, 5u8, 2u8, 2u8);
+        remove_pkcs7_pad(&mut padded);
+        assert_eq!(padded, [3u8, 5u8]);
+    }
+
+    #[test]
     fn challenge10() {
         use files::read_from_file;
         let contents = read_from_file("data/10.txt");

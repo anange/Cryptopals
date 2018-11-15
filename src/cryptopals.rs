@@ -323,6 +323,7 @@ pub fn decrypt_aes_ecb(bytes: &[u8], key: &[u8]) -> Vec<u8> {
         let current_plain = decrypt_aes_ecb_block(current_cipher, key);
         decrypted.extend(current_plain);
     }
+    remove_pkcs7_pad(&mut decrypted);
     decrypted
 }
 
@@ -343,13 +344,16 @@ pub fn decrypt_aes_ecb_block(bytes: &[u8], key: &[u8]) -> Vec<u8> {
     let mut plaintext = vec![0u8; 2 * block_size];
     decrypter.update(bytes, &mut plaintext)
         .expect("Error in decryption");
+    plaintext.truncate(block_size);
     plaintext
 }
 
 pub fn encrypt_aes_ecb(bytes: &[u8], key: &[u8]) -> Vec<u8> {
     let mut encrypted: Vec<u8> = Vec::new();
-    for block in 0..(bytes.len() / 16) {
-        let current_plain = &bytes[block*16..((block+1) * 16)];
+    let mut padded_bytes = bytes.to_vec();
+    pkcs7_pad(&mut padded_bytes, 16);
+    for block in 0..(padded_bytes.len() / 16) {
+        let current_plain = &padded_bytes[block*16..((block+1) * 16)];
         let current_cipher = encrypt_aes_ecb_block(current_plain, key);
         encrypted.extend(current_cipher);
     }
@@ -373,6 +377,7 @@ pub fn encrypt_aes_ecb_block(bytes: &[u8], key: &[u8]) -> Vec<u8> {
     let mut encrypted = vec![0u8; 2 * block_size];
     encrypter.update(bytes, &mut encrypted)
         .expect("Error in encryption");
+    encrypted.truncate(block_size);
     encrypted
 }
 
@@ -399,6 +404,20 @@ pub fn pkcs7_pad(bytes: &mut Vec<u8>, desired_length_mult: usize) {
     }
     let mut padded_bytes = vec![pad_length as u8; pad_length];
     bytes.append(&mut padded_bytes);
+}
+
+pub fn remove_pkcs7_pad(bytes: &mut Vec<u8>) {
+    let len = bytes.len();
+    let drop = bytes[len - 1];
+    if drop as usize > len {
+        panic!("Invalid PKCS#7 padding");
+    }
+    let padding = bytes.split_off(len - drop as usize);
+    for byte in padding {
+        if byte != drop {
+            panic!("Invalid PKCS#7 padding");
+        }
+    }
 }
 
 pub fn decrypt_aes_cbc(enc: &Vec<u8>, key: &Vec<u8>, iv: &Vec<u8>) -> Vec<u8> {
