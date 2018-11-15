@@ -180,6 +180,15 @@ mod tests {
     }
 
     #[test]
+    fn test_generate_key() {
+        use cryptopals::generate_key;
+        let key1 = generate_key(16);
+        assert_eq!(key1.len(), 16);
+        let key2 = generate_key(16);
+        assert_ne!(key1, key2);
+    }
+
+    #[test]
     fn test_encrypt_decrypt_aes_cbc() {
         use cryptopals::{encrypt_aes_cbc, decrypt_aes_cbc};
         let text = "YELLOW SUBMARINES".as_bytes().to_vec();
@@ -187,5 +196,17 @@ mod tests {
         let iv = vec![0u8; 16];
         let encrypted = encrypt_aes_cbc(&text, &key, &iv);
         assert_eq!(text, decrypt_aes_cbc(&encrypted, &key, &iv));
+    }
+
+    #[test]
+    fn challenge11() {
+        use cryptopals::{encryption_oracle, is_ecb};
+        let plaintext = vec!('A' as u8; 48);
+        let enc = encryption_oracle(&plaintext);
+        if is_ecb(&enc) {
+            println!("ECB");
+        } else {
+            println!("CBC");
+        }
     }
 }

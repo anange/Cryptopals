@@ -1,3 +1,4 @@
+extern crate rand;
 const BASE64: [char; 64] = [
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
     'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
@@ -451,4 +452,29 @@ pub fn encrypt_aes_cbc(plain: &Vec<u8>, key: &Vec<u8>, iv: &Vec<u8>) -> Vec<u8> 
         encrypted.extend(&cur_encrypted);
     }
     encrypted
+}
+
+pub fn generate_key(length: usize) -> Vec<u8> {
+    use self::rand::Rng;
+    let mut rng = rand::thread_rng();
+    let mut key: Vec<u8> = Vec::new();
+    for _i in 0..length {
+        key.push(rng.gen());
+    }
+    key
+}
+
+pub fn encryption_oracle(plaintext: &[u8]) -> Vec<u8> {
+    use self::rand::Rng;
+    let mut rng = rand::thread_rng();
+    let key = generate_key(16);
+    let iv = generate_key(16);
+    let mut modified = generate_key(rng.gen_range(5, 11));
+    modified.extend(plaintext);
+    modified.extend(&generate_key(rng.gen_range(5, 11)));
+    if rng.gen_range(0, 2) == 0 {
+        encrypt_aes_cbc(&modified, &key, &iv)
+    } else {
+        encrypt_aes_ecb(&modified, &key)
+    }
 }
