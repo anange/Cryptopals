@@ -421,18 +421,34 @@ pub fn remove_pkcs7_pad(bytes: &mut Vec<u8>) {
 }
 
 pub fn decrypt_aes_cbc(enc: &Vec<u8>, key: &Vec<u8>, iv: &Vec<u8>) -> Vec<u8> {
-    let mut cipher = enc.clone();
-    pkcs7_pad(&mut cipher, 16);
     let mut decrypted: Vec<u8> = Vec::new();
     for block in 0..(enc.len() / 16) {
-        let current = &cipher[block*16..((block+1) * 16)];
+        let current = &enc[block*16..((block+1) * 16)];
         let cur_decrypted = decrypt_aes_ecb_block(current, key);
         let cur_iv = if block == 0 {
             iv
         } else {
-            &cipher[(block-1)*16..block*16]
+            &enc[(block-1)*16..block*16]
         };
         decrypted.extend(encrypt_repeating_xor(cur_iv, &cur_decrypted));
     }
+    remove_pkcs7_pad(&mut decrypted);
     decrypted
+}
+
+pub fn encrypt_aes_cbc(plain: &Vec<u8>, key: &Vec<u8>, iv: &Vec<u8>) -> Vec<u8> {
+    let mut padded = plain.to_vec();
+    pkcs7_pad(&mut padded, 16);
+    let mut encrypted: Vec<u8> = Vec::new();
+    for block in 0..(padded.len() / 16) {
+        let current = &padded[block*16..((block+1) * 16)];
+        let xored = if block == 0 {
+            encrypt_repeating_xor(current, iv)
+        } else {
+            encrypt_repeating_xor(current, &encrypted[(block-1)*16..block*16])
+        };
+        let cur_encrypted = encrypt_aes_ecb_block(&xored, key);
+        encrypted.extend(&cur_encrypted);
+    }
+    encrypted
 }

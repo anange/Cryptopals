@@ -178,4 +178,14 @@ mod tests {
         let decrypted = decrypt_aes_cbc(&encrypted, &key, &iv);
         assert!(is_valid(bytes_to_string(&decrypted).as_str()));
     }
+
+    #[test]
+    fn test_encrypt_decrypt_aes_cbc() {
+        use cryptopals::{encrypt_aes_cbc, decrypt_aes_cbc};
+        let text = "YELLOW SUBMARINES".as_bytes().to_vec();
+        let key = "YELLOW SUBMARINE".as_bytes().to_vec();
+        let iv = vec![0u8; 16];
+        let encrypted = encrypt_aes_cbc(&text, &key, &iv);
+        assert_eq!(text, decrypt_aes_cbc(&encrypted, &key, &iv));
+    }
 }
