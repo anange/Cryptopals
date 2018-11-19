@@ -221,4 +221,21 @@ mod tests {
         println!("{}", bytes_to_string(&decrypted));
         assert!(decrypted.starts_with("Rollin' in my 5.0".as_bytes()));
     }
+
+    #[test]
+    fn test_kv_parse() {
+        use cryptopals::kv_parse;
+        let encoded = "foo=bar&baz=qux&zap=zazzle";
+        let parsed = vec!(("foo", "bar"), ("baz", "qux"), ("zap", "zazzle"));
+        assert_eq!(kv_parse(encoded), parsed);
+        let encoded = "email=foo@bar.com&uid=10&role=user";
+        let parsed = vec!(("email", "foo@bar.com"), ("uid", "10"), ("role", "user"));
+        assert_eq!(kv_parse(encoded), parsed);
+        let encoded = "email=foo@bar.com";
+        let parsed = vec!(("email", "foo@bar.com"));
+        assert_eq!(kv_parse(encoded), parsed);
+        let encoded = "";
+        let parsed = vec!();
+        assert_eq!(kv_parse(encoded), parsed);
+    }
 }

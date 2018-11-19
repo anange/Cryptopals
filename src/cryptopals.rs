@@ -547,3 +547,19 @@ pub fn find_blocksize(unknown: &[u8]) -> usize {
         previous = encrypted[0..8].to_vec();
     }
 }
+
+pub fn kv_parse(encoded: &str) -> Vec<(&str, &str)> {
+    let mut parsed = Vec::new();
+    let kvs: Vec<&str> = encoded.split('&').collect();
+    for kv in kvs {
+        if kv == "" {
+            continue
+        }
+        let pair: Vec<&str> = kv.split('=').collect();
+        if pair.len() != 2 {
+            panic!("Invalid kv encoding");
+        }
+        parsed.push((pair[0], pair[1]));
+    }
+    parsed
+}
