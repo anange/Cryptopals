@@ -478,3 +478,72 @@ pub fn encryption_oracle(plaintext: &[u8]) -> Vec<u8> {
         encrypt_aes_ecb(&modified, &key)
     }
 }
+
+pub fn encrypt_ecb_same_key(unknown: &[u8], plaintext: &[u8]) -> Vec<u8> {
+    let key: Vec<u8> = vec!(3, 143, 12, 42, 98, 111, 210, 5,
+                            60, 21, 180, 142, 10, 203, 250, 55);
+    let mut appended: Vec<u8> = plaintext.to_vec();
+    appended.extend(unknown);
+    encrypt_aes_ecb(&appended, &key)
+}
+
+pub fn ecb_decryption(unknown: &[u8]) -> Vec<u8> {
+    let mut decrypted = Vec::new();
+    let block_size = find_blocksize(unknown);
+    let plain = vec!(0u8; 2 * block_size);
+    if !is_ecb(&encrypt_ecb_same_key(unknown, &plain)) {
+        panic!("Not ecb");
+    }
+    let mut cur_byte = 0;
+    let blocks = unknown.len() / block_size;
+    for block_num in 0..blocks+1 {
+        while cur_byte < (block_num+1) * block_size {
+            let found_in_block = cur_byte % block_size;
+            let mut what = Vec::new();
+            if block_num > 0 {
+                what = decrypted[(block_num-1)*block_size + 1 + found_in_block..].to_vec();
+            }
+            let mut test_str = vec!('A' as u8; block_size - found_in_block - 1);
+            let actual_enc = encrypt_ecb_same_key(unknown, &test_str);
+            test_str.extend(&decrypted[block_num*block_size
+                            ..(block_num*block_size) + found_in_block]);
+            let mut found = false;
+            for ch in 0 as u8..255 as u8 {
+                if block_num > 0 {
+                    test_str.clear();
+                    test_str.extend(&what);
+                }
+                test_str.push(ch as u8);
+                let possible_enc = encrypt_ecb_same_key(unknown, &test_str);
+                if possible_enc[..block_size]
+                    .to_vec() ==
+                    actual_enc[block_num*block_size..(block_num+1) * block_size]
+                    .to_vec() {
+                        decrypted.push(ch);
+                        found = true;
+                        break;
+                }
+                test_str.pop();
+            }
+            if !found {
+                return decrypted
+            }
+            cur_byte += 1;
+        }
+    }
+    decrypted
+}
+
+pub fn find_blocksize(unknown: &[u8]) -> usize {
+    let mut test_plain = Vec::new();
+    let mut previous = Vec::new();
+    loop {
+        test_plain.push(230u8);
+        let encrypted = encrypt_ecb_same_key(unknown, &test_plain);
+        let enc_bytes = encrypted[0..8].to_vec();
+        if &previous == &enc_bytes {
+            return test_plain.len() - 1
+        }
+        previous = encrypted[0..8].to_vec();
+    }
+}

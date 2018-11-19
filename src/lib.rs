@@ -209,4 +209,16 @@ mod tests {
             println!("CBC");
         }
     }
+
+    #[test]
+    fn challenge12() {
+        use files::read_from_file;
+        let contents = read_from_file("data/12.txt");
+
+        use cryptopals::{b64_to_bytes, ecb_decryption, bytes_to_string};
+        let unknown = b64_to_bytes(&contents);
+        let decrypted = ecb_decryption(&unknown);
+        println!("{}", bytes_to_string(&decrypted));
+        assert!(decrypted.starts_with("Rollin' in my 5.0".as_bytes()));
+    }
 }
