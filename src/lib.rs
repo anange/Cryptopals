@@ -223,19 +223,47 @@ mod tests {
     }
 
     #[test]
-    fn test_kv_parse() {
-        use cryptopals::kv_parse;
+    fn test_kv_decode() {
+        use cryptopals::kv_decode;
         let encoded = "foo=bar&baz=qux&zap=zazzle";
         let parsed = vec!(("foo", "bar"), ("baz", "qux"), ("zap", "zazzle"));
-        assert_eq!(kv_parse(encoded), parsed);
+        assert_eq!(kv_decode(encoded), parsed);
         let encoded = "email=foo@bar.com&uid=10&role=user";
         let parsed = vec!(("email", "foo@bar.com"), ("uid", "10"), ("role", "user"));
-        assert_eq!(kv_parse(encoded), parsed);
+        assert_eq!(kv_decode(encoded), parsed);
         let encoded = "email=foo@bar.com";
         let parsed = vec!(("email", "foo@bar.com"));
-        assert_eq!(kv_parse(encoded), parsed);
+        assert_eq!(kv_decode(encoded), parsed);
         let encoded = "";
         let parsed = vec!();
-        assert_eq!(kv_parse(encoded), parsed);
+        assert_eq!(kv_decode(encoded), parsed);
+    }
+
+    #[test]
+    fn test_kv_encode() {
+        use cryptopals::kv_encode;
+        let encoded = "foo=bar&baz=qux&zap=zazzle";
+        let kvs = vec!(("foo", "bar"), ("baz", "qux"), ("zap", "zazzle"));
+        assert_eq!(kv_encode(kvs), encoded);
+        let encoded = "email=foo@bar.com&uid=10&role=user";
+        let kvs = vec!(("email", "foo@bar.com"), ("uid", "10"), ("role", "user"));
+        assert_eq!(kv_encode(kvs), encoded);
+        let encoded = "email=foo@bar.com";
+        let kvs = vec!(("email", "foo@bar.com"));
+        assert_eq!(kv_encode(kvs), encoded);
+        let encoded = "";
+        let kvs = vec!();
+        assert_eq!(kv_encode(kvs), encoded);
+    }
+
+    #[test]
+    fn test_profile_for() {
+        use cryptopals::{profile_for, kv_decode};
+        let profile = profile_for("foo@bar.com");
+        let kv_vec = kv_decode(&profile);
+        assert_eq!(kv_vec[2].1, "user");
+        let profile = profile_for("foo@bar.com&role=admin");
+        let kv_vec = kv_decode(&profile);
+        assert_eq!(kv_vec[2].1, "user");
     }
 }

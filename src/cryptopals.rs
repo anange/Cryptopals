@@ -548,7 +548,7 @@ pub fn find_blocksize(unknown: &[u8]) -> usize {
     }
 }
 
-pub fn kv_parse(encoded: &str) -> Vec<(&str, &str)> {
+pub fn kv_decode(encoded: &str) -> Vec<(&str, &str)> {
     let mut parsed = Vec::new();
     let kvs: Vec<&str> = encoded.split('&').collect();
     for kv in kvs {
@@ -562,4 +562,22 @@ pub fn kv_parse(encoded: &str) -> Vec<(&str, &str)> {
         parsed.push((pair[0], pair[1]));
     }
     parsed
+}
+
+pub fn kv_encode(kv_pairs: Vec<(&str, &str)>) -> String {
+    let kvs: Vec<String> = kv_pairs.into_iter()
+                                   .map(|(k, v)| format!("{}={}", k, v))
+                                   .collect();
+    kvs.join("&")
+}
+
+pub fn profile_for(email: &str) -> String {
+    use self::rand::Rng;
+    let mut rng = rand::thread_rng();
+    let uid = rng.gen_range(0, 100).to_string();
+    let stripped_email = email.replace("&", "").replace("=", "");
+    let kv_pairs = vec!(("email", stripped_email.as_str()),
+                        ("uid", &uid),
+                        ("role", "user"));
+    kv_encode(kv_pairs)
 }
