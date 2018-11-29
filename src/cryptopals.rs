@@ -1,4 +1,5 @@
 extern crate rand;
+
 const BASE64: [char; 64] = [
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
     'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
@@ -6,6 +7,9 @@ const BASE64: [char; 64] = [
     'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/'
 ];
+
+const STATIC_KEY: [u8; 16] = [3, 143, 12, 42, 98, 111, 210, 5,
+                              60, 21, 180, 142, 10, 203, 250, 55];
 
 pub fn bytes_to_string(bytes: &[u8]) -> String {
     use std::str;
@@ -480,11 +484,9 @@ pub fn encryption_oracle(plaintext: &[u8]) -> Vec<u8> {
 }
 
 pub fn encrypt_ecb_same_key(unknown: &[u8], plaintext: &[u8]) -> Vec<u8> {
-    let key: Vec<u8> = vec!(3, 143, 12, 42, 98, 111, 210, 5,
-                            60, 21, 180, 142, 10, 203, 250, 55);
     let mut appended: Vec<u8> = plaintext.to_vec();
     appended.extend(unknown);
-    encrypt_aes_ecb(&appended, &key)
+    encrypt_aes_ecb(&appended, &STATIC_KEY)
 }
 
 pub fn ecb_decryption(unknown: &[u8]) -> Vec<u8> {
@@ -548,7 +550,7 @@ pub fn find_blocksize(unknown: &[u8]) -> usize {
     }
 }
 
-pub fn kv_decode(encoded: &str) -> Vec<(&str, &str)> {
+pub fn kv_decode(encoded: &str) -> Vec<(String, String)> {
     let mut parsed = Vec::new();
     let kvs: Vec<&str> = encoded.split('&').collect();
     for kv in kvs {
@@ -559,7 +561,7 @@ pub fn kv_decode(encoded: &str) -> Vec<(&str, &str)> {
         if pair.len() != 2 {
             panic!("Invalid kv encoding");
         }
-        parsed.push((pair[0], pair[1]));
+        parsed.push((pair[0].to_string(), pair[1].to_string()));
     }
     parsed
 }
@@ -571,13 +573,29 @@ pub fn kv_encode(kv_pairs: Vec<(&str, &str)>) -> String {
     kvs.join("&")
 }
 
+pub fn get_uid(email: &str) -> u64 {
+    use std::hash::{Hash, Hasher};
+    use std::collections::hash_map::DefaultHasher;
+    let mut hasher = DefaultHasher::new();
+    email.hash(&mut hasher);
+    hasher.finish() % 100
+}
+
 pub fn profile_for(email: &str) -> String {
-    use self::rand::Rng;
-    let mut rng = rand::thread_rng();
-    let uid = rng.gen_range(0, 100).to_string();
+    let uid = get_uid(email).to_string();
     let stripped_email = email.replace("&", "").replace("=", "");
     let kv_pairs = vec!(("email", stripped_email.as_str()),
                         ("uid", &uid),
                         ("role", "user"));
     kv_encode(kv_pairs)
+}
+
+pub fn get_encrypted_profile(email: &str) -> Vec<u8> {
+    let profile = profile_for(email);
+    encrypt_aes_ecb(profile.as_bytes(), &STATIC_KEY)
+}
+
+pub fn decrypt_profile(encrypted: &[u8]) -> Vec<(String, String)> {
+    let decrypted = decrypt_aes_ecb(encrypted, &STATIC_KEY);
+    kv_decode(bytes_to_string(&decrypted).as_str())
 }

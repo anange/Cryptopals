@@ -226,13 +226,17 @@ mod tests {
     fn test_kv_decode() {
         use cryptopals::kv_decode;
         let encoded = "foo=bar&baz=qux&zap=zazzle";
-        let parsed = vec!(("foo", "bar"), ("baz", "qux"), ("zap", "zazzle"));
+        let parsed = vec!(("foo".to_string(), "bar".to_string()),
+                          ("baz".to_string(), "qux".to_string()),
+                          ("zap".to_string(), "zazzle".to_string()));
         assert_eq!(kv_decode(encoded), parsed);
         let encoded = "email=foo@bar.com&uid=10&role=user";
-        let parsed = vec!(("email", "foo@bar.com"), ("uid", "10"), ("role", "user"));
+        let parsed = vec!(("email".to_string(), "foo@bar.com".to_string()),
+                          ("uid".to_string(), "10".to_string()),
+                          ("role".to_string(), "user".to_string()));
         assert_eq!(kv_decode(encoded), parsed);
         let encoded = "email=foo@bar.com";
-        let parsed = vec!(("email", "foo@bar.com"));
+        let parsed = vec!(("email".to_string(), "foo@bar.com".to_string()));
         assert_eq!(kv_decode(encoded), parsed);
         let encoded = "";
         let parsed = vec!();
@@ -265,5 +269,15 @@ mod tests {
         let profile = profile_for("foo@bar.com&role=admin");
         let kv_vec = kv_decode(&profile);
         assert_eq!(kv_vec[2].1, "user");
+    }
+
+    #[test]
+    fn test_profile_encrypt_decrypt() {
+        use cryptopals::{get_encrypted_profile, decrypt_profile};
+        let encrypted = get_encrypted_profile("foo@bar.com");
+        let profile = decrypt_profile(&encrypted);
+        assert_eq!(profile[0].1, "foo@bar.com");
+        assert_eq!(profile[1].1, "48");
+        assert_eq!(profile[2].1, "user");
     }
 }
