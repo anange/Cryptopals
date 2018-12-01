@@ -280,4 +280,12 @@ mod tests {
         assert_eq!(profile[1].1, "48");
         assert_eq!(profile[2].1, "user");
     }
+
+    #[test]
+    fn challenge13() {
+        use cryptopals::{created_role, decrypt_profile};
+        let encr = created_role("admin");
+        let profile = decrypt_profile(&encr);
+        assert_eq!(profile[2].1, "admin");
+    }
 }

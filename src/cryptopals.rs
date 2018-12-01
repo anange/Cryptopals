@@ -599,3 +599,21 @@ pub fn decrypt_profile(encrypted: &[u8]) -> Vec<(String, String)> {
     let decrypted = decrypt_aes_ecb(encrypted, &STATIC_KEY);
     kv_decode(bytes_to_string(&decrypted).as_str())
 }
+
+pub fn created_role(role: &str) -> Vec<u8> {
+    assert!(role.len() < 16, "Role should have less than 16 bytes");
+
+    let mut email = "email=".to_string();
+    email.push_str("a".repeat(16 - "email=".len()).as_str());
+    email.push_str(role);
+    let mut bytes = email.clone().into_bytes();
+    pkcs7_pad(&mut bytes, 16);
+    email.push_str(&bytes_to_string(&bytes[16 + role.len()..]));
+    let encr = get_encrypted_profile(&email[6..]);
+
+    // fake_mail should have len=13 to fill 2 blocks until "role="
+    let mut faked_bytes = get_encrypted_profile("fake@mail.com");
+    faked_bytes.truncate(32);
+    faked_bytes.extend(&encr[16..32]);
+    faked_bytes
+}
